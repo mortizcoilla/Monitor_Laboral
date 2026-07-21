@@ -5,8 +5,9 @@
  *  - Inicializar filtros desde URL
  *  - Pintar portada (ICML)
  *  - Pintar todos los módulos
- *  - Manejar el drawer mobile
+ *  - Manejar el drawer mobile (patrón MSS alineado)
  *  - Suscribirse a cambios de filtros
+ *  - Scroll-spy de la navegación
  *
  * @namespace window.ML_MAIN
  * ====================================================================
@@ -27,66 +28,63 @@
 
   // ============== DRAWER MOBILE ==============
   function setupDrawer() {
-    const btnMenu = document.getElementById('btnMenu');
-    const btnClose = document.getElementById('btnClose');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
+    const btn = document.getElementById('ml-menu-btn');
+    const sidebar = document.getElementById('ml-sidebar');
+    const overlay = document.getElementById('ml-overlay');
+    const closeBtn = document.getElementById('ml-drawer-close');
+    if (!btn || !sidebar || !overlay) return;
 
-    if (!btnMenu || !sidebar || !overlay) return;
-
-    function openDrawer() {
+    function open() {
       sidebar.classList.add('is-open');
       overlay.hidden = false;
-      // Force reflow para activar la transición
-      void overlay.offsetWidth;
-      overlay.classList.add('is-active');
-      btnMenu.setAttribute('aria-expanded', 'true');
-      document.body.style.overflow = 'hidden';
+      btn.setAttribute('aria-expanded', 'true');
+      sidebar.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('drawer-open');
+      const first = sidebar.querySelector('button, a, select');
+      if (first && window.matchMedia('(max-width: 900px)').matches) first.focus();
     }
-    function closeDrawer() {
+    function close() {
       sidebar.classList.remove('is-open');
-      overlay.classList.remove('is-active');
-      btnMenu.setAttribute('aria-expanded', 'false');
-      document.body.style.overflow = '';
-      // ocultar después de la transición
-      setTimeout(() => { overlay.hidden = true; }, 250);
+      overlay.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      sidebar.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('drawer-open');
     }
+    function toggle() { sidebar.classList.contains('is-open') ? close() : open(); }
 
-    btnMenu.addEventListener('click', openDrawer);
-    btnClose.addEventListener('click', closeDrawer);
-    overlay.addEventListener('click', closeDrawer);
-
-    // Cerrar con Escape
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && sidebar.classList.contains('is-open')) closeDrawer();
+    btn.addEventListener('click', toggle);
+    overlay.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && sidebar.classList.contains('is-open')) close();
     });
-
-    // Cerrar al hacer click en un link
-    sidebar.querySelectorAll('a').forEach(a => {
-      a.addEventListener('click', () => {
-        if (window.innerWidth <= 900) closeDrawer();
-      });
+    sidebar.querySelectorAll('a[href^="#"]').forEach((a) => {
+      a.addEventListener('click', close);
     });
-
-    // Resize: si pasa a desktop, cerrar overlay
-    let lastW = window.innerWidth;
-    window.addEventListener('resize', () => {
-      const w = window.innerWidth;
-      if (w > 900 && lastW <= 900) closeDrawer();
-      lastW = w;
+    // En desktop el sidebar siempre es visible: aria-hidden solo aplica al drawer móvil
+    window.matchMedia('(min-width: 901px)').addEventListener('change', (ev) => {
+      if (ev.matches) { close(); sidebar.setAttribute('aria-hidden', 'false'); }
     });
+    sidebar.setAttribute('aria-hidden', window.matchMedia('(max-width: 900px)').matches ? 'true' : 'false');
   }
 
-  // ============== NAVEGACIÓN ACTIVA ==============
+  // ============== NAVEGACIÓN ACTIVA (scroll-spy) ==============
   function setupNav() {
-    const links = document.querySelectorAll('.nav__link');
-    const sections = Array.from(links).map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+    const links = document.querySelectorAll('.ml-nav a[href^="#"]');
+    const sections = Array.from(links)
+      .map((l) => document.querySelector(l.getAttribute('href')))
+      .filter(Boolean);
+
+    if (!sections.length) return;
 
     function onScroll() {
       let current = sections[0];
-      sections.forEach(s => { if (s && s.getBoundingClientRect().top < 120) current = s; });
-      links.forEach(l => {
-        l.classList.toggle('is-active', l.getAttribute('href') === '#' + (current ? current.id : ''));
+      sections.forEach((s) => {
+        if (s && s.getBoundingClientRect().top < 120) current = s;
+      });
+      const currentId = current ? '#' + current.id : '';
+      links.forEach((l) => {
+        l.classList.toggle('is-active', l.getAttribute('href') === currentId);
       });
     }
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -138,7 +136,7 @@
   // ============== INIT ==============
   function init() {
     if (typeof d3 === 'undefined') {
-      console.error('[main] D3.js no cargó');
+      console.error('[main] D3.js no cargó (vendor local)');
       return;
     }
 
