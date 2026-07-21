@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Monitor Socioeconómico del Mercado Laboral en Chile — dashboard interactivo con datos oficiales del INE, Banco Central, SUSESO, AFC y OCDE.">
+  <meta name="author" content="Miguel Ortiz C.">
+  <title>Monitor Laboral Chile · Calidad del Mercado Laboral</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://d3js.org/d3.v7.min.js" defer></script>
+</head>
+<body>
+  <!-- ============== TOPBAR MOBILE ============== -->
+  <header class="topbar" role="banner">
+    <button id="btnMenu" class="topbar__hamburger" aria-label="Abrir menú" aria-expanded="false" aria-controls="sidebar">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <line x1="4" y1="7" x2="20" y2="7"/>
+        <line x1="4" y1="12" x2="20" y2="12"/>
+        <line x1="4" y1="17" x2="20" y2="17"/>
+      </svg>
+      <span>Menú</span>
+    </button>
+    <div class="topbar__title">
+      <strong>Monitor Laboral</strong>
+      <span class="topbar__sub">Chile · Datos oficiales</span>
+    </div>
+    <div class="topbar__period" aria-label="Periodo de referencia">MAM 2026</div>
+  </header>
+
+  <!-- ============== OVERLAY (mobile drawer) ============== -->
+  <div id="overlay" class="overlay" hidden></div>
+
+  <!-- ============== LAYOUT PRINCIPAL ============== -->
+  <div class="layout">
+    <!-- ============== SIDEBAR ============== -->
+    <aside id="sidebar" class="sidebar" role="navigation" aria-label="Navegación principal">
+      <div class="sidebar__brand">
+        <div class="brand__logo" aria-hidden="true">ML</div>
+        <div>
+          <div class="brand__title">Monitor Laboral</div>
+          <div class="brand__sub">Chile · 2010 – 2026</div>
+        </div>
+        <button id="btnClose" class="sidebar__close" aria-label="Cerrar menú">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="nav" aria-label="Secciones del dashboard">
+        <a href="#portada" class="nav__link is-active">Portada</a>
+        <a href="#m1" class="nav__link">1. Empleo y subutilización</a>
+        <a href="#m2" class="nav__link">2. Informalidad</a>
+        <a href="#m3" class="nav__link">3. Remuneraciones</a>
+        <a href="#m4" class="nav__link">4. Jornada y 40 h</a>
+        <a href="#m5" class="nav__link">5. Protección social</a>
+        <a href="#m6" class="nav__link">6. Segmentos críticos</a>
+        <a href="#m7" class="nav__link">7. Contexto macro</a>
+        <a href="#metodologia" class="nav__link">Metodología y fuentes</a>
+      </nav>
+
+      <div class="sidebar__filters">
+        <h3 class="filters__title">Filtros globales</h3>
+
+        <label class="field">
+          <span class="field__label">Sexo</span>
+          <select id="f-sexo" class="field__select" data-filter="sexo">
+            <option value="all">Todos</option>
+            <option value="mujeres">Mujeres</option>
+            <option value="hombres">Hombres</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Tramo de edad</span>
+          <select id="f-edad" class="field__select" data-filter="edad">
+            <option value="all">Todos</option>
+            <option value="15-24">15–24</option>
+            <option value="25-34">25–34</option>
+            <option value="35-44">35–44</option>
+            <option value="45-54">45–54</option>
+            <option value="55-64">55–64</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Nacionalidad</span>
+          <select id="f-nac" class="field__select" data-filter="nacionalidad">
+            <option value="all">Chilenos y extranjeros</option>
+            <option value="chilenos">Chilenos</option>
+            <option value="extranjeros">Extranjeros</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Región</span>
+          <select id="f-region" class="field__select" data-filter="region">
+            <option value="all">Nacional</option>
+            <option value="RM">Región Metropolitana</option>
+            <option value="Antofagasta">Antofagasta</option>
+            <option value="Valparaiso">Valparaíso</option>
+            <option value="Biobio">Biobío</option>
+            <option value="Araucania">La Araucanía</option>
+            <option value="Magallanes">Magallanes</option>
+          </select>
+        </label>
+
+        <button id="btnReset" class="btn btn--ghost" disabled>Limpiar filtros</button>
+        <div id="activeChips" class="chips" aria-live="polite"></div>
+      </div>
+    </aside>
+
+    <!-- ============== MAIN ============== -->
+    <main class="main" role="main">
+
+      <!-- ========== PORTADA ========== -->
+      <section id="portada" class="portada" aria-labelledby="portada-title">
+        <div class="portada__head">
+          <span class="eyebrow">El número que importa · Índice de Calidad del Mercado Laboral (ICML)</span>
+          <h1 id="portada-title" class="portada__title">Mercado laboral chileno en zona <span id="nivelLabel" class="nivel">Elevado</span></h1>
+          <p class="portada__sub">Composición del último trimestre móvil disponible (mar–may 2026). Datos oficiales INE, Banco Central, SUSESO y Superintendencia de Pensiones.</p>
+        </div>
+
+        <div class="scorecard" role="region" aria-label="Scorecard principal del ICML">
+          <div class="scorecard__left">
+            <div class="scorecard__value">
+              <span id="icmlValor" class="scorecard__num">54.3</span>
+              <span class="scorecard__den">/100</span>
+            </div>
+            <div id="nivelBadge" class="scorecard__badge" data-nivel="elevado">Elevado</div>
+            <div class="scorecard__sub">Última lectura: trimestre móvil MAM 2026 · corte 30-jun-2026</div>
+          </div>
+
+          <div class="scorecard__right">
+            <div class="bar" role="img" aria-label="Escala ICML 0 a 100">
+              <div class="bar__zones">
+                <div class="bar__zone" data-zona="bajo" style="flex: 20"></div>
+                <div class="bar__zone" data-zona="moderado" style="flex: 20"></div>
+                <div class="bar__zone" data-zona="elevado" style="flex: 20"></div>
+                <div class="bar__zone" data-zona="alto" style="flex: 20"></div>
+                <div class="bar__zone" data-zona="critico" style="flex: 20"></div>
+              </div>
+              <div class="bar__marker" id="icmlMarker" style="left: 54.3%">
+                <div class="bar__marker-line"></div>
+                <div class="bar__marker-dot"></div>
+              </div>
+              <div class="bar__legend">
+                <span>Bajo (0–20)</span>
+                <span>Moderado (20–40)</span>
+                <span>Elevado (40–60)</span>
+                <span>Alto (60–80)</span>
+                <span>Crítico (80–100)</span>
+              </div>
+            </div>
+
+            <div class="comparisons">
+              <div class="cmp">
+                <div class="cmp__label">vs. inicio serie (2010)</div>
+                <div class="cmp__value" id="cmpIni">+18.4 pts</div>
+                <div class="cmp__sub">Deterioro desde 35.9</div>
+              </div>
+              <div class="cmp">
+                <div class="cmp__label">vs. trimestre anterior</div>
+                <div class="cmp__value" id="cmpAnt">+1.2 pts</div>
+                <div class="cmp__sub">MAM 2026 vs. FMA 2026</div>
+              </div>
+              <div class="cmp">
+                <div class="cmp__label">vs. mismo trim. año anterior</div>
+                <div class="cmp__value" id="cmp12m">+3.6 pts</div>
+                <div class="cmp__sub">MAM 2025 → MAM 2026</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="portada__grid">
+          <div class="kpi">
+            <div class="kpi__label">Tasa de desocupación</div>
+            <div class="kpi__value">9.4%</div>
+            <div class="kpi__sub">INE · ENE MAM 2026 · +0.5 pp. 12m</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__label">Subutilización SU3</div>
+            <div class="kpi__value">17.1%</div>
+            <div class="kpi__sub">INE · ENE MAM 2026 · incluye FTP</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__label">Ocupación informal</div>
+            <div class="kpi__value">26.8%</div>
+            <div class="kpi__sub">INE · FMA 2026 · +1.0 pp. 12m</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__label">Cotizantes dependientes AFP</div>
+            <div class="kpi__value">5.87 M</div>
+            <div class="kpi__sub">SP · dic 2025 · 84% de cobertura</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== MÓDULO 1: EMPLEO ========== -->
+      <section id="m1" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Módulo 1 · Empleo, desempleo y subutilización</span>
+          <h2 class="chart-title">El mercado no sale del 9% y la subutilización real duplica la cifra oficial</h2>
+          <p class="mod__desc">La desocupación es 9,4% (MAM 2026), pero al sumar la fuerza de trabajo potencial el slack llega a 17,1%. Ajusta con los filtros globales.</p>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--main">
+            <span class="chart-eyebrow">Serie 2010 – 2026</span>
+            <h3 class="chart-title">Tasa de desocupación y subutilización (SU3) — ¿qué tan lejos está Chile de "lleno"?</h3>
+            <svg id="chart-m1-series" viewBox="0 0 720 320" preserveAspectRatio="xMidYMid meet" aria-label="Serie histórica de desocupación y SU3"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Pirámide · género y edad</span>
+            <h3 class="chart-title">Tasa de desocupación por sexo y tramo etario (MAM 2026)</h3>
+            <svg id="chart-m1-piramide" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Composición</span>
+            <h3 class="chart-title">¿De dónde sale el 9,4%? — la fuerza de trabajo potencial pesa 8 pp.</h3>
+            <svg id="chart-m1-decomp" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Bivariado</span>
+            <h3 class="chart-title">Desocupación vs. informalidad — municipios/regiones</h3>
+            <svg id="chart-m1-scatter" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card chart-card--takeaway">
+            <span class="chart-eyebrow">Lectura clave · M1</span>
+            <h3 class="chart-title">Subempleo invisible &gt; desempleo abierto</h3>
+            <div class="tk__stat">
+              <span class="tk__num">12,2 pp</span>
+            </div>
+            <p class="tk__caption">Brecha de informalidad entre regiones: Magallanes (19,2%) vs. Araucanía (31,4%).</p>
+            <ul class="tk__list">
+              <li>La Araucanía lidera informalidad con desocupación media (8,7%) — el mercado informal absorbe a quien no encuentra empleo formal.</li>
+              <li>Magallanes (5,8% · 19,2%) es la excepción virtuosa — no la regla nacional.</li>
+              <li>El scatter no es recta: la política regional necesita 2 palancas — formalización <em>y</em> demanda.</li>
+            </ul>
+            <div class="tk__src">Cierre M1 · INE ENE FMA 2026 + OCEC UDP 2025</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== MÓDULO 2: INFORMALIDAD ========== -->
+      <section id="m2" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Módulo 2 · Informalidad</span>
+          <h2 class="chart-title">La fractura estructural: 1 de cada 4 ocupados sin protección, y casi la mitad son asalariados</h2>
+          <p class="mod__desc">Tasa de ocupación informal 26,8% (FMA 2026). 47% de los informales son dependientes sin contrato escrito. 82% trabaja en empresas del sector formal.</p>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--main">
+            <span class="chart-eyebrow">Clustering</span>
+            <h3 class="chart-title">5 ocupaciones concentran más del 50% del empleo informal — el target de política</h3>
+            <svg id="chart-m2-cluster" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Tamaño de empresa</span>
+            <h3 class="chart-title">Gradiente por tamaño: 47% en micro vs. 4% en grandes</h3>
+            <svg id="chart-m2-empresa" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Composición · OCEC UDP</span>
+            <h3 class="chart-title">¿Composición o comportamiento? — descomposición de la informalidad</h3>
+            <svg id="chart-m2-decomp" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Comparación internacional</span>
+            <h3 class="chart-title">Chile es 5° más informal de la OCDE — y el 2° más bajo de Latam</h3>
+            <svg id="chart-m2-ocde" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card chart-card--takeaway">
+            <span class="chart-eyebrow">Lectura clave · M2</span>
+            <h3 class="chart-title">Suelo de Latam, lejos de la OCDE</h3>
+            <div class="tk__stat">
+              <span class="tk__num">−23 pp</span>
+              <span class="tk__num tk__num--blue">+11 pp</span>
+            </div>
+            <p class="tk__caption">Chile (27%) bajo el promedio Latam en 23 pp, pero 11 pp sobre la media OCDE (16%).</p>
+            <ul class="tk__list">
+              <li>De 9 países latam medidos, solo Uruguay (25%) tiene menos informalidad que Chile.</li>
+              <li>Cerrar la brecha OCDE exige reformas estructurales — Chile no las ha tomado.</li>
+              <li>El piso histórico chileno (25–28%) lleva 10 años sin romperse.</li>
+            </ul>
+            <div class="tk__src">Cierre M2 · OCDE Stats 2024 + OIT Panorama Laboral 2025</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== MÓDULO 3: REMUNERACIONES ========== -->
+      <section id="m3" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Módulo 3 · Remuneraciones y distribución salarial</span>
+          <h2 class="chart-title">La mitad del país gana menos de $611 mil y el sueldo mínimo cubre al 9% de los asalariados</h2>
+          <p class="mod__desc">Ingreso mediano $611.162 (ESI 2024), brecha de género −24,4%. Sueldo mínimo $553.553 (may-2026, Ley 21.751 + reajuste).</p>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--main">
+            <span class="chart-eyebrow">Distribución</span>
+            <h3 class="chart-title">Ingreso de la ocupación principal por decil (ESI 2024)</h3>
+            <svg id="chart-m3-decil" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Calibración</span>
+            <h3 class="chart-title">Bite del mínimo: $553.553 vs. mediana $611.162 (90,5%)</h3>
+            <svg id="chart-m3-bite" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Brecha de género</span>
+            <h3 class="chart-title">Mujeres ganan −24,4% menos que hombres en la ocupación principal</h3>
+            <svg id="chart-m3-genero" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Calendario</span>
+            <h3 class="chart-title">Sueldo mínimo en Chile: del $350.000 (2022) a $553.553 (may-2026) = +58%</h3>
+            <svg id="chart-m3-inm" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card chart-card--takeaway">
+            <span class="chart-eyebrow">Lectura clave · M3</span>
+            <h3 class="chart-title">9 reajustes en 4 años — el mínimo se mueve por ley, no por mercado</h3>
+            <div class="tk__stat">
+              <span class="tk__num">$350k</span>
+              <span class="tk__num tk__num--blue">→</span>
+              <span class="tk__num">$553k</span>
+            </div>
+            <p class="tk__caption">+58% nominal. Detrás: 2 leyes (21.735 + 21.751) y 7 reajustes previos.</p>
+            <ul class="tk__list">
+              <li>El mínimo casi se duplica desde 2022 — pero el calendario muestra que la política salarial es 100% discrecional, sin indexación automática.</li>
+              <li>El IPC 12m actual (4,3%) está 1,3 pp sobre la meta del BCCh: el próximo reajuste parte con presión inflacionaria.</li>
+              <li>Laudos y leyes marcan el piso; el mercado salarial formal opera muy por encima.</li>
+            </ul>
+            <div class="tk__src">Cierre M3 · Ley 21.751 + IPC INE jun-2026</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== MÓDULO 4: JORNADA 40H ========== -->
+      <section id="m4" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Módulo 4 · Jornada y Ley 21.561</span>
+          <h2 class="chart-title">40 horas: la ley ya está moviendo el reloj antes de su plena vigencia</h2>
+          <p class="mod__desc">42 h vigentes desde 26-abr-2026 (Dictamen DT 142/09). El tramo 45 h cayó −38,6% en 12 meses; horas efectivas a 36,2 promedio.</p>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--main">
+            <span class="chart-eyebrow">Tramo horario · pre/post ley</span>
+            <h3 class="chart-title">Distribución de horas habituales — la "45 h" colapsa antes de la sanción</h3>
+            <svg id="chart-m4-tramo" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Productividad</span>
+            <h3 class="chart-title">Chile trabaja más horas que el promedio OCDE con menor PIB/h</h3>
+            <svg id="chart-m4-prod" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Plataformas · Ley 21.431</span>
+            <h3 class="chart-title">71 mil trabajadores de plataforma en 2024 — la ley formaliza una parte</h3>
+            <svg id="chart-m4-plat" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== MÓDULO 5: PROTECCIÓN SOCIAL ========== -->
+      <section id="m5" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Módulo 5 · Protección social y relaciones laborales</span>
+          <h2 class="chart-title">El seguro de cesantía cubre a 1 de cada 3 cesantes; la reforma previsional sube el costo laboral 8,5 pp. en 8 años</h2>
+          <p class="mod__desc">AFC: 3% de cotización, 10 giros. SUSESO: 7.016.470 licencias en 2025, 30,9% por trastornos mentales. Ley 21.735: 1% adicional desde ago-2025.</p>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--main">
+            <span class="chart-eyebrow">Calendario</span>
+            <h3 class="chart-title">Cotización adicional del empleador — gradualidad Ley 21.735 (2025-2033)</h3>
+            <svg id="chart-m5-prev" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Salud laboral</span>
+            <h3 class="chart-title">Licencias médicas: 7 millones en 2025, 1 de cada 3 por salud mental</h3>
+            <svg id="chart-m5-lm" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Negociación colectiva</span>
+            <h3 class="chart-title">Solo el 18% de las huelgas aprobadas se concreta (2022-2025)</h3>
+            <svg id="chart-m5-nc" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== MÓDULO 6: SEGMENTOS CRÍTICOS ========== -->
+      <section id="m6" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Módulo 6 · Segmentos críticos</span>
+          <h2 class="chart-title">Jóvenes, mujeres y migrantes cargan el peso del mercado</h2>
+          <p class="mod__desc">Jóvenes 15–24: 24,6% de desempleo (2,6× la nacional). Mujeres: SU3 20,8% vs. 14,1% hombres. Migrantes: 11% de ocupados, informalidad 30,2%.</p>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--main">
+            <span class="chart-eyebrow">Desempleo por segmento</span>
+            <h3 class="chart-title">Brechas de desocupación: jóvenes, mujeres, extranjeros y nativos</h3>
+            <svg id="chart-m6-brechas" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">SU3 por género</span>
+            <h3 class="chart-title">Subutilización femenina: 20,8% vs. 14,1% masculina (brecha 6,7 pp.)</h3>
+            <svg id="chart-m6-su3" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Migrantes</span>
+            <h3 class="chart-title">Extranjeros: 30,2% de informalidad y 6,6% de desempleo</h3>
+            <svg id="chart-m6-mig" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Ajusta con filtros</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== MÓDULO 7: CONTEXTO MACRO ========== -->
+      <section id="m7" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Módulo 7 · Contexto macro</span>
+          <h2 class="chart-title">IMACEC negativo 5 meses seguidos: la creación de empleo se desacopló del ciclo</h2>
+          <p class="mod__desc">IMACEC may-2026: −0,9% 12m. Inflación 4,3% 12m (IPC jun-2026). TPM 4,5% (jun-2026, BCCh). Ocupados creció 0,7% en 12 meses con PIB cayendo.</p>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--main">
+            <span class="chart-eyebrow">Ciclos · BCCh</span>
+            <h3 class="chart-title">IMACEC vs. tasa de desocupación: ¿es cíclico o estructural?</h3>
+            <svg id="chart-m7-ciclo" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Sectores</span>
+            <h3 class="chart-title">Composición sectorial del empleo — qué sube y qué cae</h3>
+            <svg id="chart-m7-sect" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+          <article class="chart-card">
+            <span class="chart-eyebrow">Curva de Beveridge</span>
+            <h3 class="chart-title">Desempleo vs. vacantes — ¿hay mismatch o falta demanda?</h3>
+            <svg id="chart-m7-beveridge" viewBox="0 0 480 320" preserveAspectRatio="xMidYMid meet"></svg>
+            <span class="chart-legend">Dato macro · no ajustable</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== METODOLOGÍA Y FUENTES ========== -->
+      <section id="metodologia" class="mod">
+        <header class="mod__head">
+          <span class="chart-eyebrow">Trazabilidad</span>
+          <h2 class="chart-title">Metodología del ICML y trazabilidad de fuentes</h2>
+        </header>
+        <div class="mod__grid">
+          <article class="chart-card chart-card--wide">
+            <h3 class="chart-title">Fórmula del Índice de Calidad del Mercado Laboral</h3>
+            <p class="prose">El ICML es un índice compuesto entre 0 y 100 (mayor = peor calidad) que sintetiza 8 dimensiones del mercado laboral. Cada componente se normaliza linealmente entre un piso (calidad óptima, 0) y un techo (peor escenario histórico, 100) y luego se pondera.</p>
+            <table class="tbl">
+              <thead>
+                <tr><th>Componente</th><th>Valor actual</th><th>Normalizado</th><th>Peso</th></tr>
+              </thead>
+              <tbody id="icmlTbl"></tbody>
+            </table>
+            <h3 class="chart-title" style="margin-top:24px">Umbrales del índice</h3>
+            <ul class="prose">
+              <li><b>0 – 20:</b> Bajo · el mercado opera con holgura.</li>
+              <li><b>20 – 40:</b> Moderado · tensiones sectoriales acotadas.</li>
+              <li><b>40 – 60:</b> Elevado · deterioro extendido, requiere política.</li>
+              <li><b>60 – 80:</b> Alto · falla estructural, reforma en marcha.</li>
+              <li><b>80 – 100:</b> Crítico · colapso del mercado formal.</li>
+            </ul>
+          </article>
+          <article class="chart-card chart-card--wide">
+            <h3 class="chart-title">Fuentes primarias (con corte y fecha)</h3>
+            <ol class="prose">
+              <li>INE — <i>Boletín Empleo Trimestral</i> feb–abr 2026 (publicado 29-may-2026) y mar–may 2026 (publicado 30-jun-2026). <a href="https://www.ine.gob.cl/estadisticas-por-tema/mercado-laboral/ocupacion-y-desocupacion" target="_blank" rel="noopener">ine.gob.cl</a></li>
+              <li>INE — <i>Boletín Informalidad Laboral</i> ene–mar 2026 (publicado 05-may-2026).</li>
+              <li>INE — <i>Encuesta Suplementaria de Ingresos (ESI) 2024</i>, publicada 2025.</li>
+              <li>INE — <i>IPC</i> base 2023=100, junio 2026 (publicado 08-jul-2026).</li>
+              <li>Banco Central de Chile — IMACEC mayo 2026 (publicado 02-jul-2026), TPM vigente 4,5% (jun-2026).</li>
+              <li>Superintendencia de Pensiones — <i>Informe Anual 2025</i>, cotizantes a dic-2025 (publicado mar-2026).</li>
+              <li>SUSESO — <i>Estadísticas de Accidentes del Trabajo y Enfermedades Profesionales 2025</i> (publicado abr-2026).</li>
+              <li>DT — <i>Anuario Estadísticas Laborales 2024</i>; Dictamen 142/09 (24-feb-2026).</li>
+              <li>Ley 21.561 (BCN, publicación 26-abr-2023); Ley 21.751 (BCN); Ley 21.735 (BCN, dic-2024); Ley 21.431 (BCN, sep-2022).</li>
+              <li>OCEC UDP & Cajas de Chile — <i>Estudio integral sobre informalidad laboral en Chile</i>, Acuña & Bravo (2025).</li>
+              <li>OIT — <i>Panorama Laboral América Latina y el Caribe 2025</i>.</li>
+            </ol>
+            <h3 class="chart-title" style="margin-top:24px">Limitaciones declaradas</h3>
+            <ul class="prose">
+              <li>Las cifras de informalidad por sexo en el módulo 1 usan el último dato FMA 2026 (26,8% nacional, 28,6% mujeres, 25,4% hombres) por ser la serie comparable; la cifra MAM 2026 (27,0% nacional) está en la portada como KPI.</li>
+              <li>La Curva de Beveridge usa una proxy de vacantes de la BNE/SENCE por no existir serie pública mensual completa. Marcar como "experimental".</li>
+              <li>El desglose por región se limita a 6 regiones con publicación estable; el resto del país se agrega en "Nacional".</li>
+              <li>El ICML es una construcción propia — no oficial — para síntesis comunicacional. Los detalles del cálculo y los pesos están abiertos en <code>js/core.js</code>.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <!-- ========== FOOTER ========== -->
+      <footer class="foot">
+        <div class="foot__author">
+          <strong>Miguel Ortiz C.</strong><br>
+        </div>
+        <div class="foot__links">
+          <a href="https://linkedin.com/in/mortizcoilla" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 0H5a5 5 0 00-5 5v14a5 5 0 005 5h14a5 5 0 005-5V5a5 5 0 00-5-5zM8 19H5V8h3v11zM6.5 6.7a1.7 1.7 0 110-3.4 1.7 1.7 0 010 3.4zM20 19h-3v-5.6c0-1.4-.5-2.3-1.7-2.3-1 0-1.5.6-1.8 1.3-.1.2-.1.6-.1.8V19h-3V8h3v1.3a3 3 0 012.7-1.5c2 0 3.5 1.3 3.5 4.1V19z"/></svg>
+            LinkedIn
+          </a>
+          <a href="mailto:mortizcoilla@gmail.com" aria-label="Email">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            Email
+          </a>
+          <a href="https://wa.me/56933293943" target="_blank" rel="noopener" aria-label="WhatsApp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.34 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.449L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.978-.607z"/></svg>
+            WhatsApp
+          </a>
+        </div>
+        <div class="foot__copy">
+          <span>© 2026 Miguel Ortiz C. · Licencia MIT</span>
+          <span>Construido con D3.js v7</span>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Scripts: orden importante (datos → core → analytics → filters → modules → main) -->
+  <script src="js/data.js" defer></script>
+  <script src="js/analytics.js" defer></script>
+  <script src="js/core.js" defer></script>
+  <script src="js/filters.js" defer></script>
+  <script src="js/modules.js" defer></script>
+  <script src="js/main.js" defer></script>
+</body>
+</html>
