@@ -485,16 +485,16 @@ a:focus-visible, button:focus-visible, select:focus-visible {
   font-style: italic; font-size: 13.5px; color: var(--gris);
 }
 .ml-footer-author-links { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
-.ml-footer-chip {
+.footer-chip {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 9px 14px; border: 1px solid var(--tinta); background: transparent;
   font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
   color: var(--tinta); text-decoration: none;
   transition: background .15s ease, color .15s ease, border-color .15s ease;
 }
-.ml-footer-chip:hover { background: var(--azul-oscuro); border-color: var(--azul-oscuro); color: #fff; }
-.ml-footer-chip-solid { background: var(--azul-oscuro); border-color: var(--azul-oscuro); color: #fff; }
-.ml-footer-chip-solid:hover { background: var(--azul); border-color: var(--azul); }
+.footer-chip:hover { background: var(--azul-oscuro); border-color: var(--azul-oscuro); color: #fff; }
+.footer-chip-solid { background: var(--azul-oscuro); border-color: var(--azul-oscuro); color: #fff; }
+.footer-chip-solid:hover { background: var(--azul); border-color: var(--azul); }
 
 .ml-footer-meta {
   margin-top: 46px;
@@ -572,7 +572,7 @@ a:focus-visible, button:focus-visible, select:focus-visible {
    Impresión
    ========================================================================== */
 @media print {
-  .ml-topbar, .ml-sidebar, .ml-overlay, .ml-footer-chip { display: none !important; }
+  .ml-topbar, .ml-sidebar, .ml-overlay, .footer-chip { display: none !important; }
   .ml-main { margin: 0; padding: 0; }
   .chart-card { break-inside: avoid; page-break-inside: avoid; }
 }
