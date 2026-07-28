@@ -60,6 +60,13 @@ python -m http.server 8080
 ```
 Monitor_Laboral/
 ├── index.html              ← estructura completa
+├── assets/
+│   ├── favicon.svg         ← gauge del ICML (vector)
+│   ├── favicon-32x32.png   ← favicon 32×32
+│   ├── favicon-16x16.png   ← favicon 16×16
+│   ├── favicon.ico         ← multi-resolución (legacy)
+│   ├── apple-touch-icon.png← 180×180 (iOS home screen)
+│   └── generate_favicons.py← script que regenera los PNG
 ├── css/
 │   └── styles.css          ← variables CSS, grid, mobile-first
 ├── js/
