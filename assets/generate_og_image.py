@@ -194,11 +194,11 @@ def make_landscape():
     draw.text((logo_x + (logo_size - tw) // 2 - 1, logo_y + (logo_size - th) // 2 - 14),
               txt, fill=AZUL_OSCURO, font=f_logo)
 
-    # "Monitor Laboral" al lado del logo
+    # "Monitor Laboral" al lado del logo (nombre corto, como aparece en og:title)
     f_brand = load_sans(22, bold=True)
     draw.text((logo_x + logo_size + 18, logo_y + 8), "MONITOR LABORAL", fill=(245, 248, 250), font=f_brand)
     f_sub = load_sans(14)
-    draw.text((logo_x + logo_size + 18, logo_y + 38), "Calidad del mercado laboral en Chile", fill=AZUL_CLARO, font=f_sub)
+    draw.text((logo_x + logo_size + 18, logo_y + 38), "Monitor del Mercado Laboral en Chile", fill=AZUL_CLARO, font=f_sub)
 
     # === Título principal ===
     f_title = load_serif(56, bold=True)
@@ -271,7 +271,7 @@ def make_square():
     bbox = draw.textbbox((0, 0), brand, font=f_brand)
     draw.text(((W2 - (bbox[2] - bbox[0])) // 2, 240), brand, fill=(245, 248, 250), font=f_brand)
     f_sub = load_sans(18)
-    sub = "Calidad del mercado laboral en Chile"
+    sub = "Monitor del Mercado Laboral en Chile"
     bbox = draw.textbbox((0, 0), sub, font=f_sub)
     draw.text(((W2 - (bbox[2] - bbox[0])) // 2, 280), sub, fill=AZUL_CLARO, font=f_sub)
 
